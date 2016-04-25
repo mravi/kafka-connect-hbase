@@ -1,6 +1,6 @@
 # Kafka Connect for Hbase
 
-A Sink connector to read events from Kafka and writes to HBase. 
+A Sink connector to read events from Kafka and writes to HBase.
 
 ## Perquisites
 * Confluent 2.0
@@ -21,12 +21,12 @@ name | data type | required | description
 zookeeper.quorum | string | yes | Zookeeper quorum of the HBase cluster
 event.parser.class | string | yes | Can be either AvroEventParser or JsonEventParser to parse avro or json events respectively.
 topics | string | yes | list of kafka topics.
-hbase.<topicname>.rowkey.columns | string | yes | The columns that resresent the rowkey of the hbase table <topicname>
-hbase.<topicname>.family | string | yes | Column family of the hbase table <topicname>.
+hbase.`<topicname>`.rowkey.columns | string | yes | The columns that represent the rowkey of the hbase table `<topicname>`
+hbase.`<topicname>`.family | string | yes | Column family of the hbase table `<topicname>`.
 
 Example connector.properties file
 
-```bash 
+```bash
 name=kafka-cdc-hbase
 connector.class=io.svectors.hbase.sink.HBaseSinkConnector
 tasks.max=1
@@ -67,12 +67,12 @@ nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-regis
 * Create HBase table 'test' from hbase shell
 
 * Start the hbase sink
- 
+
 ```bash
 export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-hbase/hbase-sink.jar
 
 $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-hbase/hbase-sink.properties
-```  
+```
 
 * Test with avro console, start the console to create the topic and write values
 
@@ -81,14 +81,12 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 --broker-list localhost:9092 --topic test \
 --property value.schema='{"type":"record","name":"record","fields":[{"name":"id","type":"int"}, {"name":"name", "type": "string"}]}'
 ```
-    
+
 ```bash
 #insert at prompt
 {"id": 1, "name": "foo"}
 {"id": 2, "name": "bar"}
 ```
-    
+
 
 ## TODO
-
-
