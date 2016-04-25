@@ -30,7 +30,6 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
@@ -56,7 +55,9 @@ public class HBaseSinkTask extends SinkTask {
 
     @Override
     public void start(Map<String, String> props) {
-        final AbstractConfig sinkConfig = new HBaseSinkConfig(props);
+        final HBaseSinkConfig sinkConfig = new HBaseSinkConfig(props);
+        sinkConfig.validate(); // we need to do some sanity checks of the properties we configure.
+
         final String zookeeperQuorum = sinkConfig.getString(HBaseSinkConfig.ZOOKEEPER_QUORUM_CONFIG);
         final Configuration configuration = HBaseConfiguration.create();
         configuration.set(HConstants.ZOOKEEPER_QUORUM, zookeeperQuorum);
@@ -75,7 +76,6 @@ public class HBaseSinkTask extends SinkTask {
           .collect(toMap(Map.Entry::getKey,
                          (e) -> e.getValue().stream().map(sr -> toPutFunction.apply(sr)).collect(toList())));
 
-        System.out.println(" the number of rows are " + byTable.size());
         byTable.entrySet().parallelStream().forEach(entry -> {
             hBaseClient.write(entry.getKey(), entry.getValue());
         });

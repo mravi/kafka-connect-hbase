@@ -17,8 +17,13 @@
  */
 package io.svectors.hbase.config;
 
+import com.google.common.base.Preconditions;
+import io.svectors.hbase.parser.EventParser;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.connect.runtime.ConnectorConfig;
+
 import java.util.Map;
 
 /**
@@ -26,23 +31,31 @@ import java.util.Map;
  */
 public class HBaseSinkConfig extends AbstractConfig {
 
-    public static String ZOOKEEPER_QUORUM_CONFIG = "zookeeper.quorum";
-    public static String HBASE_ROWKEY_DEFAULT_CONFIG = "hbase.rowkey.columns";
-    public static String HBASE_ROWKEY_DELIMITER_CONFIG = "hbase.rowkey.delimiter";
-    public static String HBASE_ROWKEY_DELIMITER = ",";
+    public static final String ZOOKEEPER_QUORUM_CONFIG = "zookeeper.quorum";
+    public static final String EVENT_PARSER_CONFIG = "event.parser.class";
+    public static String DEFAULT_HBASE_ROWKEY_DELIMITER = ",";
+    public static String DEFAULT_HBASE_COLUMN_FAMILY = "d";
+
+    /*
+     * The configuration for a table "test" will be in the format
+     * hbase.test.rowkey.columns = id , ts
+     * hbase.test.rowkey.delimiter = |
+     */
+    public static final String TABLE_ROWKEY_COLUMNS_TEMPLATE = "hbase.%s.rowkey.columns";
+    public static final String TABLE_ROWKEY_DELIMITER_TEMPLATE = "hbase.%s.rowkey.delimiter";
+    public static final String TABLE_COLUMN_FAMILY_TEMPLATE = "hbase.%s.family";
 
     private static ConfigDef CONFIG = new ConfigDef();
+    private Map<String, String> properties;
 
     static {
 
         CONFIG.define(ZOOKEEPER_QUORUM_CONFIG, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "Zookeeper quorum " +
-          "for the hbase cluster");
+          "of the hbase cluster");
 
-        CONFIG.define(HBASE_ROWKEY_DEFAULT_CONFIG, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "Rowkey columns " +
-          "for the table when kafka key is null. ");
+        CONFIG.define(EVENT_PARSER_CONFIG, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "Event parser class " +
+          "to parse the SinkRecord");
 
-        CONFIG.define(HBASE_ROWKEY_DELIMITER_CONFIG, ConfigDef.Type.STRING, HBASE_ROWKEY_DELIMITER,
-           ConfigDef.Importance.MEDIUM, "Rowkey columns delimiter for the table when kafka key is null. ");
     }
 
     public HBaseSinkConfig(Map<String, String> originals) {
@@ -51,5 +64,53 @@ public class HBaseSinkConfig extends AbstractConfig {
 
     public HBaseSinkConfig(ConfigDef definition, Map<String, String> originals) {
         super(definition, originals);
+        this.properties = originals;
+    }
+
+    /**
+     * Validates the properties to ensure the rowkey property is configured for each table.
+     */
+    public void validate() {
+        final String topicsAsStr = properties.get(ConnectorConfig.TOPICS_CONFIG);
+        final String[] topics = topicsAsStr.split(",");
+        for(String topic : topics) {
+            String key = String.format(TABLE_ROWKEY_COLUMNS_TEMPLATE, topic);
+            if(!properties.containsKey(key)) {
+                throw new ConfigException(String.format(" No rowkey has been configured for table [%s]", key));
+            }
+        }
+    }
+
+    /**
+     * Instantiates and return the event parser .
+     * @return
+     */
+    public EventParser eventParser()  {
+        try {
+            final String eventParserClass = getString(EVENT_PARSER_CONFIG);
+            final Class<? extends EventParser> eventParserImpl = (Class<? extends EventParser>) Class.forName(eventParserClass);
+            return eventParserImpl.newInstance();
+        } catch (ClassNotFoundException | InstantiationException  | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * @param propertyName
+     * @param defaultValue
+     * @return
+     */
+    public String getPropertyValue(final String propertyName, final String defaultValue) {
+        String propertyValue = getPropertyValue(propertyName);
+        return propertyValue != null ? propertyValue : defaultValue;
+    }
+
+    /**
+     * @param propertyName
+     * @return
+     */
+    public String getPropertyValue(final String propertyName) {
+        Preconditions.checkNotNull(propertyName);
+        return this.properties.get(propertyName);
     }
 }

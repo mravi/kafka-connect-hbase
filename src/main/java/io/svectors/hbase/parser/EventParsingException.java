@@ -15,31 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.svectors.hbase.sink;
+package io.svectors.hbase.parser;
 
 /**
  * @author ravi.magham
  */
-public class SinkConnectorException extends RuntimeException {
+public class EventParsingException extends RuntimeException {
 
     /**
 	 *
 	 */
-	private static final long serialVersionUID = -7544850650938270177L;
+	private static final long serialVersionUID = -5861884289109519422L;
 
-	public SinkConnectorException() {
+	public EventParsingException() {
         super();
     }
 
-    public SinkConnectorException(String message) {
+    public EventParsingException(String message) {
         super(message);
     }
 
-    public SinkConnectorException(String message, Throwable cause) {
+    public EventParsingException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public SinkConnectorException(Throwable cause) {
+    public EventParsingException(Throwable cause) {
         super(cause);
+    }
+
+    protected EventParsingException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

@@ -40,14 +40,19 @@ public final class HBaseClient {
         Preconditions.checkNotNull(tableName);
         Preconditions.checkNotNull(puts);
         final TableName table = TableName.valueOf(tableName);
+        write(table, puts);
+    }
+
+    public void write(final TableName table, final List<Put> puts) {
+        Preconditions.checkNotNull(table);
+        Preconditions.checkNotNull(puts);
         try(final Connection connection = this.connectionFactory.getConnection();
             final BufferedMutator mutator = connection.getBufferedMutator(table);) {
-
             mutator.mutate(puts);
             mutator.flush();
         } catch(Exception ex) {
             final String errorMsg = String.format("Failed with a [%s] when writing to table [%s] ", ex.getMessage(),
-               table.getNameAsString());
+              table.getNameAsString());
             throw new SinkConnectorException(errorMsg, ex);
         }
     }

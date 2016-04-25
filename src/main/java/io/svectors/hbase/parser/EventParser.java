@@ -15,31 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.svectors.hbase.sink;
+package io.svectors.hbase.parser;
+
+import org.apache.kafka.connect.sink.SinkRecord;
+
+import java.util.Map;
 
 /**
  * @author ravi.magham
  */
-public class SinkConnectorException extends RuntimeException {
+public interface EventParser {
 
     /**
-	 *
-	 */
-	private static final long serialVersionUID = -7544850650938270177L;
+     * Parses the key value based on the key schema .
+     * @param sr
+     * @return
+     */
+    Map<String, byte[]> parseKey(SinkRecord sr) throws EventParsingException;
 
-	public SinkConnectorException() {
-        super();
-    }
-
-    public SinkConnectorException(String message) {
-        super(message);
-    }
-
-    public SinkConnectorException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public SinkConnectorException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * Parses the values based on the value schema.
+     * @param sr
+     * @return
+     */
+    Map<String, byte[]> parseValue(SinkRecord sr) throws EventParsingException;
 }

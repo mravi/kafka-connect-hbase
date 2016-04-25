@@ -19,65 +19,111 @@ package io.svectors.hbase.util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+
+import io.svectors.hbase.parser.EventParser;
+import io.svectors.hbase.config.HBaseSinkConfig;
+
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.sink.SinkRecord;
 import java.util.Map;
-import java.util.Optional;
-import io.svectors.hbase.config.HBaseSinkConfig;
+
 
 /**
  * @author ravi.magham
  */
 public class ToPutFunction implements Function<SinkRecord, Put> {
 
-    private final ConverterUtil converterUtil = ConverterUtil.getInstance();
-    private final AbstractConfig sinkConfig;
+    private final HBaseSinkConfig sinkConfig;
+    private final EventParser eventParser;
 
-    public ToPutFunction(AbstractConfig sinkConfig) {
+    public ToPutFunction(HBaseSinkConfig sinkConfig) {
         this.sinkConfig = sinkConfig;
+        this.eventParser = sinkConfig.eventParser();
     }
 
+    /**
+     * Converts the sinkRecord to a {@link Put} instance
+     * The event parser parses the key schema of sinkRecord only when there is
+     * no property configured for {@link HBaseSinkConfig#TABLE_ROWKEY_COLUMNS_TEMPLATE}
+     *
+     * @param sinkRecord
+     * @return
+     */
     @Override
     public Put apply(final SinkRecord sinkRecord) {
         Preconditions.checkNotNull(sinkRecord);
+        final String table = sinkRecord.topic();
+        final String columnFamily = columnFamily(table);
+        final String delimiter = rowkeyDelimiter(table);
 
-        final Optional<byte[]> rowkeyOptional = converterUtil.toRowKey(sinkRecord);
-        final Map<String, byte[]> valuesMap  = converterUtil.toColumnValues(sinkRecord);
-        byte[] rowkey = null;
-        if(!rowkeyOptional.isPresent()) {
-            rowkey = toRowKey(valuesMap);
-        } else {
-            rowkey = rowkeyOptional.get();
-        }
-        if(rowkey == null) {
+        final Map<String, byte[]> valuesMap  = this.eventParser.parseValue(sinkRecord);
+        final Map<String, byte[]> keysMap = this.eventParser.parseKey(sinkRecord);
 
-        }
+        valuesMap.putAll(keysMap);
+        final String[] rowkeyColumns = rowkeyColumns(table);
+        final byte[] rowkey = toRowKey(valuesMap, rowkeyColumns, delimiter);
+
         final Put put = new Put(rowkey);
         valuesMap.entrySet().stream().forEach(entry -> {
             final String qualifier = entry.getKey();
             final byte[] value = entry.getValue();
-            put.addColumn(Bytes.toBytes("d"), Bytes.toBytes(qualifier), value);
+            put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(qualifier), value);
         });
         return put;
     }
 
     /**
-     * constructs the row key.
-     * @param valuesMap
+     * A kafka topic is a 1:1 mapping to a HBase table.
+     * @param table
      * @return
      */
-    private byte[] toRowKey(Map<String, byte[]> valuesMap) {
-        final String rowKeyCols = sinkConfig.getString(HBaseSinkConfig.HBASE_ROWKEY_DEFAULT_CONFIG);
-        final String delimiter = sinkConfig.getString(HBaseSinkConfig.HBASE_ROWKEY_DELIMITER_CONFIG);
-        final byte[] delimiterBytes = Bytes.toBytes(delimiter);
-        final String[] columns = rowKeyCols.split(",");
+    private String[] rowkeyColumns(final String table) {
+        final String entry = String.format(HBaseSinkConfig.TABLE_ROWKEY_COLUMNS_TEMPLATE, table);
+        final String entryValue = sinkConfig.getPropertyValue(entry);
+        return entryValue.split(",");
+    }
+
+    /**
+     * Returns the delimiter for a table. If nothing is configured in properties,
+     * we use the default {@link HBaseSinkConfig#DEFAULT_HBASE_ROWKEY_DELIMITER}
+     * @param table hbase table.
+     * @return
+     */
+    private String rowkeyDelimiter(final String table) {
+        final String entry = String.format(HBaseSinkConfig.TABLE_ROWKEY_DELIMITER_TEMPLATE, table);
+        final String entryValue = sinkConfig.getPropertyValue(entry, HBaseSinkConfig.DEFAULT_HBASE_ROWKEY_DELIMITER);
+        return entryValue;
+    }
+
+    /**
+     * Returns the column family mapped in configuration for the table.  If not present, we use the
+     * default {@link HBaseSinkConfig#DEFAULT_HBASE_COLUMN_FAMILY}
+     * @param table hbase table.
+     * @return
+     */
+    private String columnFamily(final String table) {
+        final String entry = String.format(HBaseSinkConfig.TABLE_COLUMN_FAMILY_TEMPLATE, table);
+        final String entryValue = sinkConfig.getPropertyValue(entry, HBaseSinkConfig.DEFAULT_HBASE_COLUMN_FAMILY);
+        return entryValue;
+    }
+
+    /**
+     *
+     * @param valuesMap
+     * @param columns
+     * @return
+     */
+    private byte[] toRowKey(final Map<String, byte[]> valuesMap, final String[] columns, final String delimiter) {
+        Preconditions.checkNotNull(valuesMap);
+        Preconditions.checkNotNull(delimiter);
+
         byte[] rowkey = null;
+        byte[] delimiterBytes = Bytes.toBytes(delimiter);
         for(String column : columns) {
             byte[] columnValue = valuesMap.get(column);
             if(rowkey == null) {
-                rowkey = Bytes.add(columnValue, delimiterBytes);
+                rowkey = columnValue;
             } else {
                 rowkey = Bytes.add(rowkey, delimiterBytes, columnValue);
             }

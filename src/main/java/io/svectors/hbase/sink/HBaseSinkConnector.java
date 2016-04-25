@@ -17,12 +17,10 @@
  */
 package io.svectors.hbase.sink;
 
-import static io.svectors.hbase.config.HBaseSinkConfig.ZOOKEEPER_QUORUM_CONFIG;
 import com.google.common.collect.Lists;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,9 +39,6 @@ public class HBaseSinkConnector extends SinkConnector {
 
     @Override
     public void start(Map<String, String> props) {
-        if(!props.containsKey(ZOOKEEPER_QUORUM_CONFIG)) {
-           throw new RuntimeException(String.format("Properties doen't contain the field [%s] ", ZOOKEEPER_QUORUM_CONFIG));
-        }
         this.configProperties = props;
     }
 
@@ -55,10 +50,8 @@ public class HBaseSinkConnector extends SinkConnector {
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
         List<Map<String, String>> configs = Lists.newArrayList();
-        Map<String, String> taskProps = new HashMap<>();
-        taskProps.putAll(configProperties);
         for (int i = 0; i < maxTasks; i++) {
-            configs.add(taskProps);
+            configs.add(configProperties);
         }
         return configs;
     }
@@ -67,6 +60,4 @@ public class HBaseSinkConnector extends SinkConnector {
     public void stop() {
         // NO-OP
     }
-
-
 }
