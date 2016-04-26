@@ -1,8 +1,8 @@
 # Kafka Connect for Hbase
 
-A Sink connector to read events from Kafka and writes to HBase.
+A Sink connector to read events from Kafka and write to HBase.
 
-## Perquisites
+## Pre-requisites
 * Confluent 2.0
 * HBase 1.0.0
 * JDK 1.8
@@ -89,4 +89,19 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 ```
 
 
+## Clarifications
+* Why does the project name contain  `cdc`  when its merely is a sink connector to Hbase ?
+
+```bash
+To rhyme it with my other project  [hbase-cdc-kafka](https://github.com/mravi/hbase-cdc-kafka) which captures all mutations (Put / Delete) of HBase tables and writes to Kafka, I had to go with this name.
+```
+
+* Has this connector been tested in a distributed Kafka connect environment?
+
+```bash
+No. Its' in my TODO list.
+```
+
 ## TODO
+* Run this project in a distributed mode on YARN using [Apache Twill](http://twill.incubator.apache.org). Not an OOTB solution but am confident it should work.
+
