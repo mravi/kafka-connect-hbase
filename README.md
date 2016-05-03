@@ -1,6 +1,6 @@
 # Kafka Connect for Hbase
 
-A Sink connector to read events from Kafka and write to HBase.
+A Sink connector to write to HBase.
 
 ## Pre-requisites
 * Confluent 2.0
