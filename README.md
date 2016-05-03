@@ -89,17 +89,6 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 ```
 
 
-## Clarifications
-* Why does the project name contain  `cdc`  when its merely is a sink connector to Hbase ?
-
-To rhyme it with my other project  [hbase-cdc-kafka](https://github.com/mravi/hbase-cdc-kafka) which captures all mutations (Put / Delete) of HBase tables and writes to Kafka, I had to go with this name.
-
-
-* Has this connector been tested in a distributed Kafka connect environment?
-
-No. Its' definitely on my TODO list.
-
-
 ## TODO
 * Run this project in a distributed mode on YARN using [Apache Twill](http://twill.incubator.apache.org). Not an OOTB solution but with some code tinkering, I am confident it will work. 
 
