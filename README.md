@@ -88,8 +88,3 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 {"id": 1, "name": "foo"}
 {"id": 2, "name": "bar"}
 ```
-
-
-## TODO
-* Run this project in a distributed mode on YARN using [Apache Twill](http://twill.incubator.apache.org). Not an OOTB solution but with some code tinkering, I am confident it will work. 
-
